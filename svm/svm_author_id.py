@@ -32,3 +32,9 @@ print "predict time:", round(time()-t0, 3), "s"
 from sklearn.metrics import accuracy_score
 accuracy = accuracy_score(pred, labels_test)
 print accuracy
+
+count = 0
+for p in pred:
+	if p == 1:
+		count += 1
+print "Chris emails: ", count
