@@ -18,7 +18,7 @@ from email_preprocess import preprocess
 ### and testing datasets, respectively
 ### labels_train and labels_test are the corresponding item labels
 features_train, features_test, labels_train, labels_test = preprocess()
-
+print "features train features: ", len(features_train[0])
 
 from sklearn import tree
 clf = tree.DecisionTreeClassifier(min_samples_split=40)
