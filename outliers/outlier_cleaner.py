@@ -13,8 +13,21 @@ def outlierCleaner(predictions, ages, net_worths):
     
     cleaned_data = []
 
-    ### your code goes here
+    i, total = 0, len(predictions)
 
+    while i < total:
+        age, net_worth = ages[i], net_worths[i]
+        error = abs(predictions[i] - net_worths[i])
+        tp = ( age, net_worth, error )
+        cleaned_data.append(tp)
+        i += 1
+
+    cleaned_data = sorted(cleaned_data, key=lambda tup: tup[2])
+    ten_percent = total * .90
     
-    return cleaned_data
+    i = ten_percent
+    while i < total:
+        cleaned_data.pop()
+        i += 1
 
+    return cleaned_data
