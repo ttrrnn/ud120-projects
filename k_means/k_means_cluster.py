@@ -81,6 +81,21 @@ kmeans = KMeans(n_clusters=3)
 kmeans = kmeans.fit(finance_features)
 pred = kmeans.predict(finance_features)
 
+
+#from sklearn.preprocessing import MinMaxScaler
+sal, stock = [], []
+for i in range(len(finance_features)):
+    sal.append(float(finance_features[i][0]))
+    stock.append(float(finance_features[i][1]))
+
+min_sal, max_sal = min(sal), max(sal)
+min_stock, max_stock = min(stock), max(stock)
+
+scaled_sal = (200000 - min_sal) / (max_sal - min_sal)
+scaled_stock = (1000000 - min_stock) / (max_stock - min_stock)
+
+print scaled_sal, " ", scaled_stock
+
 ### rename the "name" parameter when you change the number of features
 ### so that the figure gets saved to a different file
 try:
