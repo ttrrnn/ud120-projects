@@ -82,7 +82,7 @@ kmeans = kmeans.fit(finance_features)
 pred = kmeans.predict(finance_features)
 
 
-#from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 sal, stock = [], []
 for i in range(len(finance_features)):
     sal.append(float(finance_features[i][0]))
@@ -91,8 +91,13 @@ for i in range(len(finance_features)):
 min_sal, max_sal = min(sal), max(sal)
 min_stock, max_stock = min(stock), max(stock)
 
-scaled_sal = (200000 - min_sal) / (max_sal - min_sal)
-scaled_stock = (1000000 - min_stock) / (max_stock - min_stock)
+# scaled_sal = (200000 - min_sal) / (max_sal - min_sal)
+# scaled_stock = (1000000 - min_stock) / (max_stock - min_stock)
+
+scaler = MinMaxScaler()
+scaled_sal = scaler.fit_transform([[min_sal], [200000], [max_sal]])
+scaled_stock = scaler.fit_transform([[min_stock], [1000000], [max_stock]])
+
 
 print scaled_sal, " ", scaled_stock
 
