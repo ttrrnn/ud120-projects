@@ -14,11 +14,10 @@ word_data = pickle.load( open(words_file, "r"))
 authors = pickle.load( open(authors_file, "r") )
 
 
-
-### test_size is the percentage of events assigned to the test set (the
-### remainder go into training)
-### feature matrices changed to dense representations for compatibility with
-### classifier functions in versions 0.15.2 and earlier
+## test_size is the percentage of events assigned to the test set (the
+## remainder go into training)
+## feature matrices changed to dense representations for compatibility with
+## classifier functions in versions 0.15.2 and earlier
 from sklearn import cross_validation
 features_train, features_test, labels_train, labels_test = cross_validation.train_test_split(word_data, authors, test_size=0.1, random_state=42)
 
@@ -39,5 +38,19 @@ labels_train   = labels_train[:150]
 
 ### your code goes here
 
+from sklearn import tree
+clf = tree.DecisionTreeClassifier()
+clf = clf.fit(features_train, labels_train)
+pred = clf.predict(features_test)
+
+from sklearn.metrics import accuracy_score
+acc = accuracy_score(labels_test, pred)
+print "accuracy: ", acc
+
+feature_diffs = clf.feature_importances_
+for i in range(len(feature_diffs)):
+	fd = feature_diffs[i]
+	if fd > 0.2:
+		print "feature_diff: ", fd, " i: ", i
 
 
