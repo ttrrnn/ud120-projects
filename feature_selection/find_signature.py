@@ -47,10 +47,10 @@ from sklearn.metrics import accuracy_score
 acc = accuracy_score(labels_test, pred)
 print "accuracy: ", acc
 
-feature_diffs = clf.feature_importances_
-for i in range(len(feature_diffs)):
-	fd = feature_diffs[i]
-	if fd > 0.2:
-		print "feature_diff: ", fd, " i: ", i
+feat_impt = clf.feature_importances_
 
+for i in range(len(feat_impt)):
+	fd = feat_impt[i]
+	if fd > 0.2:
+		print "feature impt: ", fd, " feature_no: ", i, " word: ", vectorizer.get_feature_names()[i]
 
