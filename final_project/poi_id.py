@@ -2,6 +2,7 @@
 
 import sys
 import pickle
+import matplotlib.pyplot
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
@@ -49,7 +50,7 @@ def exploreDataSet(data_dict):
 
 
 
-# part 1 in helping to find feature selections
+# part 1 of feature selecting -- exploring features
 # identify and count how many features are NaN
 # display missing features, and percentage if display bool is True
 def exploreFeatures(data_dict, display):
@@ -73,6 +74,7 @@ def exploreFeatures(data_dict, display):
 	print "--------------------------------------------------------"
 	return	features_dict
 
+# part 2 of feature selecting -- the selection processes
 # selects features where feature percentage of NaN values fall below indicated threshold
 def selectFeatures(features_dict, max_threshold):
 	print "------------------ SELECT FEATURES ---------------------"
@@ -85,7 +87,9 @@ def selectFeatures(features_dict, max_threshold):
 	for k, v in features_dict.items():
 		if v <= max_threshold:
 			features_list.append(k)
+	
 	print features_list
+
 	print "--------------------------------------------------------"
 	return features_list
 
@@ -104,7 +108,38 @@ feature_dict = exploreFeatures(data_dict, True)
 max_threshold = 70.
 features_list = selectFeatures(feature_dict, max_threshold)	# MOAR FEATURES!
 
+
+
+# visualizing with graph to find outliers
+def plot(data_dict, x_feature, y_feature):
+	features = ['poi', x_feature, y_feature]
+	# data_dict.pop("TOTAL", 0)
+	data = featureFormat(data_dict, features)
+
+	for point in data:
+		poi = point[0]
+		x = point[1]
+		y = point[2]
+
+		if poi:
+		    color = 'red'
+		else:
+		    color = 'blue'
+
+		matplotlib.pyplot.scatter(x, y, color=color)
+
+	matplotlib.pyplot.xlabel(x_feature)
+	matplotlib.pyplot.ylabel(y_feature)
+	matplotlib.pyplot.show()
+
+
 ### Task 2: Remove outliers
+plot(data_dict, 'salary','bonus')
+# plot(data_dict, 'salary','total_payments')
+# plot(data_dict, 'total_payments','total_stock_value')
+# plot(data_dict, 'salary','bonus')
+# plot(data_dict, 'from_poi_to_this_person','from_this_person_to_poi')
+
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
