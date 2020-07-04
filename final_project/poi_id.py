@@ -1,14 +1,5 @@
 #!/usr/bin/python
 
-'''
-FOR REFERENCE of features
-
-financial_features = ['salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'director_fees']
-
-email_features = ['to_messages', 'email_address', 'from_poi_to_this_person', 'from_messages', 'from_this_person_to_poi', 'shared_receipt_with_poi']
-
-'''
-
 import sys
 import pickle
 sys.path.append("../tools/")
@@ -16,6 +7,7 @@ sys.path.append("../tools/")
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 
+# exploring data set similar to mini project
 def exploreDataSet(data_dict):
 	print "------------------ EXPLORE DATASET --------------------"
 	keys = data_dict.keys()
@@ -28,51 +20,89 @@ def exploreDataSet(data_dict):
 	num_emails_to_poi, num_emails_from_poi = 0., 0.
 
 	for key, val in data_dict.items():
-		if (val['poi'] == 1):
+		if val['poi'] == 1:
 		    num_poi += 1
-		elif (val['salary'] != 'NaN'):
+		elif val['salary'] != 'NaN':
 		    num_nonNaN_salary += 1
-		elif (val['total_payments'] != 'NaN'):
+		elif val['total_payments'] != 'NaN':
 			num_total_payment += 1
-		elif (val['bonus'] != 'NaN'):
+		elif val['bonus'] != 'NaN':
 			num_bonus += 1
-		elif (val['long_term_incentive'] != 'NaN'):
+		elif val['long_term_incentive'] != 'NaN':
 			num_long_term_incentive += 1
-		elif (val['from_this_person_to_poi'] != 'NaN'):
+		elif val['from_this_person_to_poi'] != 'NaN':
 			num_emails_to_poi += 1
-		elif (val['from_poi_to_this_person'] != 'NaN'):
+		elif val['from_poi_to_this_person'] != 'NaN':
 			num_emails_from_poi +=1
 		else:
 			pass
 
 	print "no. of POI: ", num_poi
 	print "no. of non-POI: ", len(data_dict) - num_poi
-	print "no. of nonNAN salary: ", num_nonNaN_salary, "--", (num_nonNaN_salary/total_data_points)
-	print "no. of total payments: ", num_total_payment, "--", (num_total_payment/total_data_points)
-	print "no. of bonus: ", num_bonus, "--", (num_bonus/total_data_points)
-	print "no. of long term incentive: ", num_long_term_incentive, "--", (num_long_term_incentive/total_data_points)
-	print "no. of emails to POI: ", num_emails_to_poi, "--", (num_emails_to_poi/total_data_points)
-	print "no. of emails from POI: ", num_emails_from_poi, "--", (num_emails_from_poi/total_data_points)
-	print "------------------ END EXPLORE DATASET --------------------"
+	print "no. of nonNAN salary: ", num_nonNaN_salary, "\t", "{:.2f}".format( ( num_nonNaN_salary / total_data_points ) * 100 ) + "%"
+	print "no. of total payments: ", num_total_payment, "\t", "{:.2f}".format( ( num_total_payment / total_data_points ) * 100 ) + "%"
+	print "no. of bonus: ", num_bonus, "\t", "{:.2f}".format( ( num_bonus / total_data_points ) * 100 ) + "%"
+	print "no. of long term incentive: ", num_long_term_incentive, "\t", "{:.2f}".format( ( num_long_term_incentive / total_data_points ) * 100 ) + "%"
+	print "no. of emails to POI: ", num_emails_to_poi, "\t", "{:.2f}".format( ( num_emails_to_poi / total_data_points ) * 100 ) + "%"
+	print "no. of emails from POI: ", num_emails_from_poi, "\t", "{:.2f}".format( ( num_emails_from_poi / total_data_points ) * 100 ) + "%"
+	print "--------------------------------------------------------"
 
-	# TODO: count how many features are missing and then do some magic
-def exploreFeatures(data_dict):
-	return	# should return features that have NaN values
+
+
+# part 1 in helping to find feature selections
+# identify and count how many features are NaN
+# display missing features, and percentage if display bool is True
+def exploreFeatures(data_dict, display):
+	print "------------------ EXPLORE FEATURES --------------------"
+	features = data_dict.values()
+	features_dict = {k: 0. for k in features[0].keys()}
+
+	for f in features:
+		for key, val in f.items():
+			if val == 'NaN':
+				features_dict[key] += 1
+
+	if display:
+		total = len(data_dict)
+
+		for key, val in features_dict.items():
+			percentage = ( val / total ) * 100
+			features_dict[key] = percentage
+			print key, "\t",  percentage
+
+	print "--------------------------------------------------------"
+	return	features_dict
+
+# selects features where feature percentage of NaN values fall below indicated threshold
+def selectFeatures(features_dict, max_threshold):
+	print "------------------ SELECT FEATURES ---------------------"
+	features_list = []
+	features_list.append('poi')				# must be first value
+	
+	features_dict.pop('poi')
+	features_dict.pop('email_address')		# lazy to fix error with feature_format.py
+
+	for k, v in features_dict.items():
+		if v <= max_threshold:
+			features_list.append(k)
+	print features_list
+	print "--------------------------------------------------------"
+	return features_list
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
 features_list = ['poi','salary'] # You will need to use more features
 
-financial_features = ['salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'director_fees']
-
-email_features = ['to_messages', 'email_address', 'from_poi_to_this_person', 'from_messages', 'from_this_person_to_poi', 'shared_receipt_with_poi']
-
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
 
 exploreDataSet(data_dict)
+feature_dict = exploreFeatures(data_dict, True)
+
+max_threshold = 70.
+features_list = selectFeatures(feature_dict, max_threshold)	# MOAR FEATURES!
 
 ### Task 2: Remove outliers
 ### Task 3: Create new feature(s)
