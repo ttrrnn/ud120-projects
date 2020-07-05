@@ -6,7 +6,8 @@ import matplotlib.pyplot
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
-from tester import dump_classifier_and_data
+from tester import dump_classifier_and_data, test_classifier
+from sklearn.metrics import accuracy_score
 
 # exploring data set similar to mini project
 def exploreDataSet(data_dict):
@@ -23,18 +24,18 @@ def exploreDataSet(data_dict):
 	for key, val in data_dict.items():
 		if val['poi'] == 1:
 		    num_poi += 1
-		elif val['salary'] != 'NaN':
-		    num_nonNaN_salary += 1
-		elif val['total_payments'] != 'NaN':
-			num_total_payment += 1
-		elif val['bonus'] != 'NaN':
-			num_bonus += 1
-		elif val['long_term_incentive'] != 'NaN':
-			num_long_term_incentive += 1
-		elif val['from_this_person_to_poi'] != 'NaN':
-			num_emails_to_poi += 1
-		elif val['from_poi_to_this_person'] != 'NaN':
-			num_emails_from_poi +=1
+		# elif val['salary'] != 'NaN':
+		#     num_nonNaN_salary += 1
+		# elif val['total_payments'] != 'NaN':
+		# 	num_total_payment += 1
+		# elif val['bonus'] != 'NaN':
+		# 	num_bonus += 1
+		# elif val['long_term_incentive'] != 'NaN':
+		# 	num_long_term_incentive += 1
+		# elif val['from_this_person_to_poi'] != 'NaN':
+		# 	num_emails_to_poi += 1
+		# elif val['from_poi_to_this_person'] != 'NaN':
+		# 	num_emails_from_poi +=1
 		else:
 			pass
 
@@ -148,13 +149,6 @@ def identifyOutlier(data_dict, t1, t1_label, t2, t2_label):
 			if (t1_data > t1) and (t2_data > t2):
 				print key, val['poi']
 
-### Task 2: Remove outliers
-# outliers identified through visualizing plots
-outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K']
-
-for o in outliers:
-	data_dict.pop(o, 0)
-
 # potential outliers ID through split features & plotting
 # [''LAY KENNETH L'',SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
 
@@ -175,9 +169,55 @@ for o in outliers:
 # t1_label, t2_label = 'restricted_stock', 'salary'
 # identifyOutlier(data_dict, t1, t1_label, t2, t2_label)
 
+### Task 2: Remove outliers
+# outliers identified through visualizing plots
+outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K']
 
+for o in outliers:
+	data_dict.pop(o, 0)
+
+# Lesson 12 Feature Selection -- creating new features
+def computeFraction(numerator, denominator):
+    fraction = 0.
+    if numerator == "NaN" or denominator == "NaN":
+        return 0.
+    else: 
+        return float(numerator) / denominator
+
+    return fraction
+
+# Lesson 12 Feature Selection -- creating new features 
+def createFraction(data_dict, point1, point2):
+	submit_dict = {}
+	for name in data_dict:
+		data_point = data_dict[name]
+
+		numerator = data_point[point1]
+		denominator = data_point[point2]
+		ratio = computeFraction( numerator, denominator )
+
+		submit_dict[name] = { point1: ratio }
+
+	return submit_dict
 
 ### Task 3: Create new feature(s)
+from_POI_ratio = createFraction(data_dict, "from_poi_to_this_person", "to_messages")
+to_POI_ratio = createFraction(data_dict, "from_this_person_to_poi", "from_messages")
+# bonus_salary_ratio = createFraction(data_dict, "bonus", "salary")
+
+updated = [from_POI_ratio, to_POI_ratio]
+# replacing the count with fractions
+for u in updated:
+	for key, val in u.items():
+		for k, v in val.items():
+			data_dict[key][k] = v
+
+print "------------------ FEATURES UPDATE ---------------------"
+print "use fraction and replaced count for following features\n"
+print "\t\tFROM_POI_TO_THIS_PERSON"
+print "\t\tFROM_THIS_PERSON_TO_POI"
+print "--------------------------------------------------------"
+
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
 
@@ -192,8 +232,19 @@ labels, features = targetFeatureSplit(data)
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
 # Provided to give you a starting point. Try a variety of classifiers.
-from sklearn.naive_bayes import GaussianNB
-clf = GaussianNB()
+def GaussianNB(features, labels):
+	from sklearn.naive_bayes import GaussianNB
+	
+	return GaussianNB().fit(features, labels)
+
+def DecisionTree(features, labels, min_sample_split):
+	from sklearn import tree
+	clf = tree.DecisionTreeClassifier(min_samples_split = min_sample_split)
+
+	return clf.fit(features, labels)
+
+# clf = GaussianNB(features, labels)
+clf = DecisionTree(features, labels, 40)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -206,6 +257,11 @@ clf = GaussianNB()
 from sklearn.cross_validation import train_test_split
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
+
+
+test_classifier(clf, my_dataset, features_list)
+
+
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
