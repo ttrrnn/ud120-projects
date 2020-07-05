@@ -40,12 +40,12 @@ def exploreDataSet(data_dict):
 
 	print "no. of POI: ", num_poi
 	print "no. of non-POI: ", len(data_dict) - num_poi
-	print "no. of nonNAN salary: ", num_nonNaN_salary, "\t", "{:.2f}".format( ( num_nonNaN_salary / total_data_points ) * 100 ) + "%"
-	print "no. of total payments: ", num_total_payment, "\t", "{:.2f}".format( ( num_total_payment / total_data_points ) * 100 ) + "%"
-	print "no. of bonus: ", num_bonus, "\t", "{:.2f}".format( ( num_bonus / total_data_points ) * 100 ) + "%"
-	print "no. of long term incentive: ", num_long_term_incentive, "\t", "{:.2f}".format( ( num_long_term_incentive / total_data_points ) * 100 ) + "%"
-	print "no. of emails to POI: ", num_emails_to_poi, "\t", "{:.2f}".format( ( num_emails_to_poi / total_data_points ) * 100 ) + "%"
-	print "no. of emails from POI: ", num_emails_from_poi, "\t", "{:.2f}".format( ( num_emails_from_poi / total_data_points ) * 100 ) + "%"
+	# print "no. of nonNAN salary: ", num_nonNaN_salary, "\t", "{:.2f}".format( ( num_nonNaN_salary / total_data_points ) * 100 ) + "%"
+	# print "no. of total payments: ", num_total_payment, "\t", "{:.2f}".format( ( num_total_payment / total_data_points ) * 100 ) + "%"
+	# print "no. of bonus: ", num_bonus, "\t", "{:.2f}".format( ( num_bonus / total_data_points ) * 100 ) + "%"
+	# print "no. of long term incentive: ", num_long_term_incentive, "\t", "{:.2f}".format( ( num_long_term_incentive / total_data_points ) * 100 ) + "%"
+	# print "no. of emails to POI: ", num_emails_to_poi, "\t", "{:.2f}".format( ( num_emails_to_poi / total_data_points ) * 100 ) + "%"
+	# print "no. of emails from POI: ", num_emails_from_poi, "\t", "{:.2f}".format( ( num_emails_from_poi / total_data_points ) * 100 ) + "%"
 	print "--------------------------------------------------------"
 
 
@@ -56,20 +56,22 @@ def exploreDataSet(data_dict):
 def exploreFeatures(data_dict, display):
 	print "------------------ EXPLORE FEATURES --------------------"
 	features = data_dict.values()
-	features_dict = {k: 0. for k in features[0].keys()}
+	features_dict = {k: {"count": 0., "percentage": 0., "poi": 0.} for k in features[0].keys()}
 
 	for f in features:
 		for key, val in f.items():
 			if val == 'NaN':
-				features_dict[key] += 1
+				features_dict[key]['count'] += 1
+				if f['poi']:
+					features_dict[key]['poi'] += 1
 
 	if display:
 		total = len(data_dict)
 
 		for key, val in features_dict.items():
-			percentage = ( val / total ) * 100
-			features_dict[key] = percentage
-			print key, "\t",  percentage
+			percentage = ( features_dict[key]['count'] / total )
+			features_dict[key]['percentage'] = percentage
+			print "{:.3f}".format(percentage), "\tPOI:", int(features_dict[key]['poi']), " ", key
 
 	print "--------------------------------------------------------"
 	return	features_dict
@@ -82,16 +84,19 @@ def selectFeatures(features_dict, max_threshold):
 	features_list.append('poi')				# must be first value
 	
 	features_dict.pop('poi')
-	features_dict.pop('email_address')		# lazy to fix error with feature_format.py
+	features_dict.pop('email_address')		# errors with feature_format.py
 
 	for k, v in features_dict.items():
-		if v <= max_threshold:
+		v_p = v['percentage']
+		if v_p <= max_threshold:
 			features_list.append(k)
+		else:
+			print "TRASHED\t\t", v['poi'], "\t{:.3f}".format(v_p), "\t", k
 	
-	print features_list
-
+	print "\n", features_list
 	print "--------------------------------------------------------"
 	return features_list
+
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
@@ -105,15 +110,15 @@ with open("final_project_dataset.pkl", "r") as data_file:
 exploreDataSet(data_dict)
 feature_dict = exploreFeatures(data_dict, True)
 
-max_threshold = 70.
-features_list = selectFeatures(feature_dict, max_threshold)	# MOAR FEATURES!
+
+max_threshold = .70
+features_list = selectFeatures(feature_dict, max_threshold)	# ADDING MOAR FEATURES
 
 
 
-# visualizing with graph to find outliers
+# visualize with graph to find outliers
 def plot(data_dict, x_feature, y_feature):
 	features = ['poi', x_feature, y_feature]
-	# data_dict.pop("TOTAL", 0)
 	data = featureFormat(data_dict, features)
 
 	for point in data:
@@ -125,20 +130,52 @@ def plot(data_dict, x_feature, y_feature):
 		    color = 'red'
 		else:
 		    color = 'blue'
-
+		if y < 0:
+			print point, y_feature
 		matplotlib.pyplot.scatter(x, y, color=color)
 
 	matplotlib.pyplot.xlabel(x_feature)
 	matplotlib.pyplot.ylabel(y_feature)
 	matplotlib.pyplot.show()
 
+# print out outlier's name
+def identifyOutlier(data_dict, t1, t1_label, t2, t2_label):
+	for key, val in data_dict.items():
+		t1_data = val[t1_label]
+		t2_data = val[t2_label]
+
+		if (t1_data != "NaN") and (t2_data != "NaN"):
+			if (t1_data > t1) and (t2_data > t2):
+				print key, val['poi']
 
 ### Task 2: Remove outliers
-plot(data_dict, 'salary','bonus')
-# plot(data_dict, 'salary','total_payments')
-# plot(data_dict, 'total_payments','total_stock_value')
-# plot(data_dict, 'salary','bonus')
-# plot(data_dict, 'from_poi_to_this_person','from_this_person_to_poi')
+# outliers identified through visualizing plots
+outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K']
+
+for o in outliers:
+	data_dict.pop(o, 0)
+
+# potential outliers ID through split features & plotting
+# [''LAY KENNETH L'',SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
+
+# # split features_list into finance and email
+# financial_feats = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock']
+# email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
+
+# # compare salary with the rest of the data
+# for i in range(2, len(financial_feats)):
+# 	plot(data_dict, financial_feats[1], financial_feats[i])
+
+# # compare to_messages with the rest
+# for i in range(2, len(email_feats)):
+# 	plot (data_dict, email_feats[1], email_feats[i])
+
+# # LOOKING FOR KEY TO POP!
+# t1, t2 = -2000000, 200000
+# t1_label, t2_label = 'restricted_stock', 'salary'
+# identifyOutlier(data_dict, t1, t1_label, t2, t2_label)
+
+
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
