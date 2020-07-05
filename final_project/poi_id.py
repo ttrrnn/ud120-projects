@@ -243,8 +243,15 @@ def DecisionTree(features, labels, min_sample_split):
 
 	return clf.fit(features, labels)
 
-# clf = GaussianNB(features, labels)
-clf = DecisionTree(features, labels, 40)
+def KMeans(features, cluster_size):
+	from sklearn.cluster import KMeans
+	kmeans = KMeans(n_clusters=cluster_size)
+	return kmeans.fit(features)
+
+
+clf = GaussianNB(features, labels)
+# clf = DecisionTree(features, labels, 40)
+# clf = KMeans(features, 2)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
