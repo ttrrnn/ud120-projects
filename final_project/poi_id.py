@@ -7,55 +7,33 @@ sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data, test_classifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
 # exploring data set similar to mini project
-def exploreDataSet(data_dict):
+def exploreDataSet(data_dict, display=True):
 	print "------------------ EXPLORE DATASET --------------------"
 	keys = data_dict.keys()
 	total_data_points = len(data_dict)
-	print "Number of data points: ", total_data_points
-	print "Number of features/person: ", len(data_dict[keys[0]])
+	print total_data_points, '\tno. data points'
+	print len(data_dict[keys[0]]), '\t\tno. features per person'
 
-	num_poi = 0.0
-	num_nonNaN_salary, num_total_payment, num_bonus, num_long_term_incentive = 0., 0., 0., 0.
-	num_emails_to_poi, num_emails_from_poi = 0., 0.
+	poi, non_poi = 0, 0
 
 	for key, val in data_dict.items():
 		if val['poi'] == 1:
-		    num_poi += 1
-		# elif val['salary'] != 'NaN':
-		#     num_nonNaN_salary += 1
-		# elif val['total_payments'] != 'NaN':
-		# 	num_total_payment += 1
-		# elif val['bonus'] != 'NaN':
-		# 	num_bonus += 1
-		# elif val['long_term_incentive'] != 'NaN':
-		# 	num_long_term_incentive += 1
-		# elif val['from_this_person_to_poi'] != 'NaN':
-		# 	num_emails_to_poi += 1
-		# elif val['from_poi_to_this_person'] != 'NaN':
-		# 	num_emails_from_poi +=1
+		    poi += 1
 		else:
-			pass
-
-	print "no. of POI: ", num_poi
-	print "no. of non-POI: ", len(data_dict) - num_poi
-	# print "no. of nonNAN salary: ", num_nonNaN_salary, "\t", "{:.2f}".format( ( num_nonNaN_salary / total_data_points ) * 100 ) + "%"
-	# print "no. of total payments: ", num_total_payment, "\t", "{:.2f}".format( ( num_total_payment / total_data_points ) * 100 ) + "%"
-	# print "no. of bonus: ", num_bonus, "\t", "{:.2f}".format( ( num_bonus / total_data_points ) * 100 ) + "%"
-	# print "no. of long term incentive: ", num_long_term_incentive, "\t", "{:.2f}".format( ( num_long_term_incentive / total_data_points ) * 100 ) + "%"
-	# print "no. of emails to POI: ", num_emails_to_poi, "\t", "{:.2f}".format( ( num_emails_to_poi / total_data_points ) * 100 ) + "%"
-	# print "no. of emails from POI: ", num_emails_from_poi, "\t", "{:.2f}".format( ( num_emails_from_poi / total_data_points ) * 100 ) + "%"
+			non_poi += 1
+	if display:
+		print poi, '\t\tno. of POI'
+		print non_poi, '\tno. of non-POI'
 	print "--------------------------------------------------------"
 
-
-
-# part 1 of feature selecting -- exploring features
+# part 1 of feature exploration -- exploring features
 # identify and count how many features are NaN
-# display missing features, and percentage if display bool is True
-def exploreFeatures(data_dict, display):
-	print "------------------ EXPLORE FEATURES --------------------"
+# display missing features and percentage for missing data in entire data set
+def exploreFeatures(data_dict, display=True):
+	print "-------------- TOTAL NaN / FEATURES --------------------\n"
 	features = data_dict.values()
 	features_dict = {k: {"count": 0., "percentage": 0., "poi": 0.} for k in features[0].keys()}
 
@@ -72,15 +50,44 @@ def exploreFeatures(data_dict, display):
 		for key, val in features_dict.items():
 			percentage = ( features_dict[key]['count'] / total )
 			features_dict[key]['percentage'] = percentage
-			print "{:.3f}".format(percentage), "\tPOI:", int(features_dict[key]['poi']), " ", key
+			print "NaN", "{:.0f}  ".format(features_dict[key]['count']), "({:.3f})".format(percentage), "\tPOI:", int(features_dict[key]['poi']), " ", key
 
 	print "--------------------------------------------------------"
 	return	features_dict
 
-# part 2 of feature selecting -- the selection processes
+
+# part 2 of exploring features -- count and calculate percentage of missing data values (NaN)
+# will only delete if bool is True
+def exploreNaNCount(data_dict, maxPercentage, delete=False, display=True):
+	print "----------------- TOTAL NaN / PERSON -------------------\n"
+	keys = data_dict.keys()
+	total_features = len(data_dict[keys[0]].keys())
+	d_keys, new_dd = [], data_dict
+
+	for name, item in data_dict.items():
+		nan_count = 0.
+		for key, value in item.items():
+			if value == 'NaN':
+				nan_count += 1
+
+		percentage = nan_count / total_features
+		
+		if (percentage >= maxPercentage) and delete:
+			d_keys.append(name)
+			del new_dd[name]
+		else:
+			d_keys.append(name)
+
+		if display:
+			print "{:.3f}".format(percentage), '\t', name
+
+	print "--------------------------------------------------------"
+	return d_keys, new_dd
+
+# part 3 of feature exploration -- the deletion processes
 # selects features where feature percentage of NaN values fall below indicated threshold
-def selectFeatures(features_dict, max_threshold):
-	print "------------------ SELECT FEATURES ---------------------"
+def deleteFeatures(features_dict, max_threshold, display=True):
+	print "------------------ CHECK FEATURES ---------------------"
 	features_list = []
 	features_list.append('poi')				# must be first value
 	
@@ -92,12 +99,12 @@ def selectFeatures(features_dict, max_threshold):
 		if v_p <= max_threshold:
 			features_list.append(k)
 		else:
-			print "TRASHED\t\t", v['poi'], "\t{:.3f}".format(v_p), "\t", k
-	
-	print "\n", features_list
+			if display:
+				print "TRASHED\t\t", v['poi'], "\t{:.3f}".format(v_p), "\t", k
+	if display:
+		print "\n", features_list
 	print "--------------------------------------------------------"
 	return features_list
-
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
@@ -108,17 +115,12 @@ features_list = ['poi','salary'] # You will need to use more features
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
 
-exploreDataSet(data_dict)
-feature_dict = exploreFeatures(data_dict, True)
-
-
-max_threshold = .70
-features_list = selectFeatures(feature_dict, max_threshold)	# ADDING MOAR FEATURES
-
-
+exploreDataSet(data_dict, False)
+feature_dict = exploreFeatures(data_dict, False)
+new_keys, new_dict = exploreNaNCount(data_dict, 0.95, False, False)
 
 # visualize with graph to find outliers
-def plot(data_dict, x_feature, y_feature):
+def outlier_graph_visual(data_dict, x_feature, y_feature):
 	features = ['poi', x_feature, y_feature]
 	data = featureFormat(data_dict, features)
 
@@ -152,17 +154,17 @@ def identifyOutlier(data_dict, t1, t1_label, t2, t2_label):
 # potential outliers ID through split features & plotting
 # [''LAY KENNETH L'',SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
 
-# # split features_list into finance and email
-# financial_feats = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock']
-# email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
+# split features_list into finance and email
+financial_feats = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock']
+email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
 
 # # compare salary with the rest of the data
 # for i in range(2, len(financial_feats)):
-# 	plot(data_dict, financial_feats[1], financial_feats[i])
+# 	outlier_graph_visual(data_dict, financial_feats[1], financial_feats[i])
 
 # # compare to_messages with the rest
 # for i in range(2, len(email_feats)):
-# 	plot (data_dict, email_feats[1], email_feats[i])
+# 	outlier_graph_visual (data_dict, email_feats[1], email_feats[i])
 
 # # LOOKING FOR KEY TO POP!
 # t1, t2 = -2000000, 200000
@@ -200,10 +202,26 @@ def createFraction(data_dict, point1, point2):
 
 	return submit_dict
 
+# selecting k best features
+def selectKBestFeatures(data_dict, features_list, k):
+	from sklearn.feature_selection import SelectKBest, f_classif
+	data = featureFormat(data_dict, features_list)
+	labels, features = targetFeatureSplit(data)
+
+	k_best = SelectKBest(f_classif, k=k)
+	k_best.fit(features, labels)
+	scores = k_best.scores_
+	unsorted_pairs = zip(features_list[1:], scores)
+	sorted_pairs = list(reversed(sorted(unsorted_pairs, key=lambda x: x[1])))
+	# print "sorted_pairs", sorted_pairs
+	k_best_features = dict(sorted_pairs[:k])
+	print k_best_features
+	return k_best_features
+
+
 ### Task 3: Create new feature(s)
 from_POI_ratio = createFraction(data_dict, "from_poi_to_this_person", "to_messages")
 to_POI_ratio = createFraction(data_dict, "from_this_person_to_poi", "from_messages")
-# bonus_salary_ratio = createFraction(data_dict, "bonus", "salary")
 
 updated = [from_POI_ratio, to_POI_ratio]
 # replacing the count with fractions
@@ -212,11 +230,8 @@ for u in updated:
 		for k, v in val.items():
 			data_dict[key][k] = v
 
-print "------------------ FEATURES UPDATE ---------------------"
-print "use fraction and replaced count for following features\n"
-print "\t\tFROM_POI_TO_THIS_PERSON"
-print "\t\tFROM_THIS_PERSON_TO_POI"
-print "--------------------------------------------------------"
+features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
+selectKBestFeatures(data_dict, features_list, 10)
 
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
@@ -224,6 +239,8 @@ my_dataset = data_dict
 ### Extract features and labels from dataset for local testing
 data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
+
+
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -237,21 +254,18 @@ def GaussianNB(features, labels):
 	
 	return GaussianNB().fit(features, labels)
 
-def DecisionTree(features, labels, min_sample_split):
+def DecisionTree(features, labels):
 	from sklearn import tree
-	clf = tree.DecisionTreeClassifier(min_samples_split = min_sample_split)
+	clf = tree.DecisionTreeClassifier()
 
 	return clf.fit(features, labels)
 
-def KMeans(features, cluster_size):
-	from sklearn.cluster import KMeans
-	kmeans = KMeans(n_clusters=cluster_size)
-	return kmeans.fit(features)
+def SVM(features, labels, kernel='rbf', c=1000):
+	from sklearn.svm import SVC
+	clf = SVC(kernel=kernel,C=c)
 
+	return clf.fit(features, labels)
 
-clf = GaussianNB(features, labels)
-# clf = DecisionTree(features, labels, 40)
-# clf = KMeans(features, 2)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -264,6 +278,21 @@ clf = GaussianNB(features, labels)
 from sklearn.cross_validation import train_test_split
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
+
+
+
+clf = GaussianNB(features_train, labels_train)
+clf1 = DecisionTree(features_train, labels_train)
+clf2 = SVM(features_train, labels_train)
+
+pred = clf.predict(features_test)
+pred1 = clf1.predict(features_test)
+pred2 = clf2.predict(features_test)
+
+name = ['poi', 'non_poi']
+print classification_report(labels_test, pred, target_names=name)
+print classification_report(labels_test, pred1, target_names=name)
+print classification_report(labels_test, pred2, target_names=name)
 
 
 test_classifier(clf, my_dataset, features_list)
