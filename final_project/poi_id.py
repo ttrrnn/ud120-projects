@@ -84,7 +84,7 @@ def exploreNaNCount(data_dict, maxPercentage, delete=False, display=True):
 	print "--------------------------------------------------------"
 	return d_keys, new_dd
 
-# part 3 of feature exploration -- the deletion processes
+# part "3" of feature exploration -- the deletion processes
 # selects features where feature percentage of NaN values fall below indicated threshold
 def deleteFeatures(features_dict, max_threshold, display=True):
 	print "------------------ CHECK FEATURES ---------------------"
@@ -115,9 +115,10 @@ features_list = ['poi','salary'] # You will need to use more features
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
 
-exploreDataSet(data_dict, False)
-feature_dict = exploreFeatures(data_dict, False)
-new_keys, new_dict = exploreNaNCount(data_dict, 0.95, False, False)
+exploreDataSet(data_dict, True)
+feature_dict = exploreFeatures(data_dict, True)
+new_keys, new_dict = exploreNaNCount(data_dict, 0.85, True, True)
+feature_list_NaNRemoved = deleteFeatures(feature_dict, 0.85, True)
 
 # visualize with graph to find outliers
 def outlier_graph_visual(data_dict, x_feature, y_feature):
@@ -173,7 +174,7 @@ email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 
 
 ### Task 2: Remove outliers
 # outliers identified through visualizing plots
-outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K']
+outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
 
 for o in outliers:
 	data_dict.pop(o, 0)
@@ -212,10 +213,12 @@ def selectKBestFeatures(data_dict, features_list, k):
 	k_best.fit(features, labels)
 	scores = k_best.scores_
 	unsorted_pairs = zip(features_list[1:], scores)
-	sorted_pairs = list(reversed(sorted(unsorted_pairs, key=lambda x: x[1])))
-	# print "sorted_pairs", sorted_pairs
-	k_best_features = dict(sorted_pairs[:k])
-	print k_best_features
+	sorted_pairs = sorted(unsorted_pairs, key=lambda x: x[1])
+	list_sorted_pairs = list(sorted_pairs)
+	
+	k_best_features = dict(list_sorted_pairs[-k:])
+	# print '\n',k_best_features
+
 	return k_best_features
 
 
@@ -231,7 +234,11 @@ for u in updated:
 			data_dict[key][k] = v
 
 features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
-selectKBestFeatures(data_dict, features_list, 10)
+
+feature_dict = selectKBestFeatures(data_dict, features_list, 7) #7
+# feature_dict = selectKBestFeatures(data_dict, feature_list_NaNRemoved, 9)
+features_list = ['poi'] + [f for f in feature_dict.keys()]
+
 
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
@@ -239,8 +246,6 @@ my_dataset = data_dict
 ### Extract features and labels from dataset for local testing
 data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
-
-
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -281,18 +286,18 @@ features_train, features_test, labels_train, labels_test = \
 
 
 
-clf = GaussianNB(features_train, labels_train)
-clf1 = DecisionTree(features_train, labels_train)
-clf2 = SVM(features_train, labels_train)
+# clf = GaussianNB(features_train, labels_train)
+clf = DecisionTree(features_train, labels_train)
+# clf2 = SVM(features_train, labels_train)
 
-pred = clf.predict(features_test)
-pred1 = clf1.predict(features_test)
-pred2 = clf2.predict(features_test)
+# pred = clf.predict(features_test)
+# pred1 = clf1.predict(features_test)
+# pred2 = clf2.predict(features_test)
 
-name = ['poi', 'non_poi']
-print classification_report(labels_test, pred, target_names=name)
-print classification_report(labels_test, pred1, target_names=name)
-print classification_report(labels_test, pred2, target_names=name)
+# name = ['poi', 'non_poi']
+# print classification_report(labels_test, pred, target_names=name)
+# print classification_report(labels_test, pred1, target_names=name)
+# print classification_report(labels_test, pred2, target_names=name)
 
 
 test_classifier(clf, my_dataset, features_list)
