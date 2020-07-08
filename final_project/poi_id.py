@@ -117,7 +117,7 @@ with open("final_project_dataset.pkl", "r") as data_file:
 
 exploreDataSet(data_dict, True)
 feature_dict = exploreFeatures(data_dict, True)
-new_keys, new_dict = exploreNaNCount(data_dict, 0.85, True, True)
+new_keys, new_dict = exploreNaNCount(data_dict, 0.30, True, True)
 feature_list_NaNRemoved = deleteFeatures(feature_dict, 0.85, True)
 
 # visualize with graph to find outliers
