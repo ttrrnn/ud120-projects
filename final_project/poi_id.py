@@ -109,7 +109,7 @@ def deleteFeatures(features_dict, max_threshold, display=True):
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi','salary'] # You will need to use more features
+features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
@@ -130,6 +130,8 @@ def outlier_graph_visual(data_dict, x_feature, y_feature):
 		x = point[1]
 		y = point[2]
 
+		if y > 10000000:
+			print x, y
 		if poi:
 		    color = 'red'
 		else:
@@ -149,15 +151,23 @@ def identifyOutlier(data_dict, t1, t1_label, t2, t2_label):
 		t2_data = val[t2_label]
 
 		if (t1_data != "NaN") and (t2_data != "NaN"):
-			if (t1_data > t1) and (t2_data > t2):
+			if (t1_data >= t1) and (t2_data >= t2):
 				print key, val['poi']
 
 # potential outliers ID through split features & plotting
 # [''LAY KENNETH L'',SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
+# manually found: BHATNAGAR SANJAY
 
 # split features_list into finance and email
 financial_feats = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock']
 email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
+
+### Task 2: Remove outliers
+# outliers identified through visualizing plots
+outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W', 'BHATNAGAR SANJAY']
+
+for o in outliers:
+	data_dict.pop(o, 0)
 
 # # compare salary with the rest of the data
 # for i in range(2, len(financial_feats)):
@@ -167,17 +177,20 @@ email_feats = ['poi', 'to_messages','from_messages', 'from_poi_to_this_person', 
 # for i in range(2, len(email_feats)):
 # 	outlier_graph_visual (data_dict, email_feats[1], email_feats[i])
 
+# outlier_graph_visual(data_dict, 'salary', 'total_payments')
 # # LOOKING FOR KEY TO POP!
-# t1, t2 = -2000000, 200000
-# t1_label, t2_label = 'restricted_stock', 'salary'
+# t1, t2 = 15456290, 0
+# t1_label, t2_label = 'total_payments', 'salary'
 # identifyOutlier(data_dict, t1, t1_label, t2, t2_label)
 
-### Task 2: Remove outliers
-# outliers identified through visualizing plots
-outliers = ['TOTAL', 'LAY KENNETH L','SKILLING JEFFREY K','FREVERT MARK A','KAMINSKI WINCENTY J','DELAINEY DAVID W']
 
-for o in outliers:
-	data_dict.pop(o, 0)
+
+# # print data_dict['LAVORATO JOHN J']
+# for key, val in data_dict.items():
+# 	tp = val['total_payments']
+# 	sal = val['salary']
+# 	if tp >= 15456290 and sal == 'NaN':
+# 		print key
 
 # Lesson 12 Feature Selection -- creating new features
 def computeFraction(numerator, denominator):
@@ -222,6 +235,36 @@ def selectKBestFeatures(data_dict, features_list, k):
 	return k_best_features
 
 
+def scaleFinancialFeatures(data_dict):
+	from sklearn.preprocessing import MinMaxScaler
+	f1, f2, f3 = 'salary', 'total_stock_value', 'exercised_stock_options'
+	sal, tp, stock = [], [], []
+
+	for value in data_dict.values():
+		sal_v = value[f1]
+		tp_v = value[f2]
+		s_v = value[f3]
+
+		sal.append(sal_v) if sal_v != 'NaN' else sal.append(0.)
+		tp.append(tp_v) if tp_v != 'NaN' else tp.append(0.)
+		stock.append(s_v) if s_v != 'NaN' else stock.append(0.)
+
+
+	scaler = MinMaxScaler()
+	scaled_sal = scaler.fit_transform(sal)
+	scaled_tp = scaler.fit_transform(tp)
+	scaled_stock = scaler.fit_transform(stock)
+
+	keys = [key for key in data_dict.keys()]
+	scaled_features = zip(keys, scaled_sal, scaled_tp, scaled_stock)
+	for s in scaled_features:
+		key, salary, total_payments, exercised_stock_options = s[0], s[1], s[2], s[3]
+		data_dict[key][f1] = salary
+		data_dict[key][f2] = total_payments
+		data_dict[key][f3] = exercised_stock_options
+
+	return data_dict
+
 ### Task 3: Create new feature(s)
 from_POI_ratio = createFraction(data_dict, "from_poi_to_this_person", "to_messages")
 to_POI_ratio = createFraction(data_dict, "from_this_person_to_poi", "from_messages")
@@ -233,12 +276,12 @@ for u in updated:
 		for k, v in val.items():
 			data_dict[key][k] = v
 
-features_list = ['poi', 'salary', 'total_payments', 'bonus', 'total_stock_value', 'long_term_incentive', 'exercised_stock_options', 'deferred_income', 'expenses', 'restricted_stock', 'to_messages','from_messages', 'from_poi_to_this_person', 'from_this_person_to_poi', 'shared_receipt_with_poi']
 
 feature_dict = selectKBestFeatures(data_dict, features_list, 7) #7
-# feature_dict = selectKBestFeatures(data_dict, feature_list_NaNRemoved, 9)
+# feature_dict = selectKBestFeatures(data_dict, feature_list_NaNRemoved, 9) #9
 features_list = ['poi'] + [f for f in feature_dict.keys()]
 
+data_dict = scaleFinancialFeatures(data_dict)
 
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
@@ -246,6 +289,8 @@ my_dataset = data_dict
 ### Extract features and labels from dataset for local testing
 data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
+
+print features_list
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
@@ -284,10 +329,8 @@ from sklearn.cross_validation import train_test_split
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
 
-
-
 # clf = GaussianNB(features_train, labels_train)
-clf = DecisionTree(features_train, labels_train)
+# clf1 = DecisionTree(features_train, labels_train)
 # clf2 = SVM(features_train, labels_train)
 
 # pred = clf.predict(features_test)
@@ -300,6 +343,7 @@ clf = DecisionTree(features_train, labels_train)
 # print classification_report(labels_test, pred2, target_names=name)
 
 
+clf = DecisionTree(features, labels)
 test_classifier(clf, my_dataset, features_list)
 
 
